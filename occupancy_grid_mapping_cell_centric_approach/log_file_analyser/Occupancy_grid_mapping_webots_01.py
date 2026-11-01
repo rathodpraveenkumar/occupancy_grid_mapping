@@ -10,7 +10,7 @@ import ast
 df = pd.read_csv("/home/rathod/Webots_worlds/controllers/DriveMyRobot/point_cloud_data_occupancy_grid_mapping")
 data = df["lidar_measurements"]
 lidar_measurement = ast.literal_eval(data[1])
-print(len(lidar_measurement))
+
 
 class Map :
 
@@ -176,7 +176,7 @@ def inverse_sensor_model(cell, lo, l_occ, l_free, r, phi, z_t, z_max, alpha, bet
     if r > min(z_max, z_t + alpha/2) :
         return lo
 
-    elif (z_t < z_max) and np.abs(z_t - r) <= alpha :
+    elif (z_t < z_max) and np.abs(z_t - r) <= alpha/2 :
         return l_occ
 
     elif r < z_t :
@@ -206,7 +206,7 @@ def binary_occupancy_grid_mapping(map, likelihood, lo, l_occ, l_free, x_t, z_t, 
 
         # Likelihood of the cell
         lkd = likelihood[n, m]
-
+        lkd_initial = lkd
         # Cell
         cell = map.get_cell_center(i)
 
@@ -229,6 +229,18 @@ def binary_occupancy_grid_mapping(map, likelihood, lo, l_occ, l_free, x_t, z_t, 
 
         likelihood[n, m] = lkd
 
+        # Print the cell details before and after considering the position and measurement
+        if n == map.rows() - 1 :
+
+            print(f"Cell : ROw {n} Col {m}")
+            print(f"Initial Likelihood : {lkd_initial} ")
+
+            print(f'Cell location in world frame {cell} {"\n"}Measurement associated {measured_range} at a heading of {np.degrees(angle_min + k*angle_increment)}')
+            print(f"Computed Range and Bearing of the cell from the lidar {r} m  {phi} deg ")
+            print(f"Likelihood after : {lkd}")
+            print("----------------------------------------------------------------------------------------------------------------------------------------------")
+
+
     return likelihood
 
 # Parameters
@@ -247,13 +259,13 @@ l_free = -0.8473
 map = Map(map_length = arena_length, map_width = arena_width, cell_length = cell_length, cell_width = cell_width, lo = lo)
 
 # Alpha and Beta
-alpha = cell_length
+alpha = 0.4
 beta = np.radians(1)
 
 # Lidar's maximum Range
 z_max = 15
 
-likelihood = binary_occupancy_grid_mapping(map = map, likelihood = map.likelihood, lo = lo, l_occ = l_occ, l_free = l_free, x_t = np.array([0.0, 0., 0.]), z_t = lidar_measurement, z_max = 20, alpha = alpha, beta = beta)
+likelihood = binary_occupancy_grid_mapping(map = map, likelihood = map.likelihood, lo = lo, l_occ = l_occ, l_free = l_free, x_t = np.array([0.0, 0., 0.]), z_t = lidar_measurement, z_max = z_max, alpha = alpha, beta = beta)
 
 # print(f"LIKE {"\n"}{likelihood[0, 0:10]}{"\n"}{likelihood[1, 0:10]}{"\n"}{likelihood[2, 0:10]}{"\n"}{likelihood[3, 0:10]}{"\n"}{likelihood[4, 0:10]}")
 
@@ -286,4 +298,44 @@ plt.title('Binary Occupancy Grid Map')
 
 plt.axis('equal')
 plt.grid(False)
+
+
+# Robot pose (same pose used in occupancy grid mapping)
+x_R, y_R, theta_R = 0.0, 0.0, 0.0
+
+# LiDAR scan configuration
+angle_min = np.radians(180)
+angle_increment = -np.radians(1)
+
+# Convert ranges into a NumPy array
+ranges = np.asarray(lidar_measurement, dtype=float)
+
+# Calculate the angle of every LiDAR beam
+angles = angle_min + np.arange(len(ranges)) * angle_increment
+
+# Remove invalid and out-of-range measurements
+valid = (
+    np.isfinite(ranges) &
+    (ranges > 0) &
+    (ranges < z_max)
+)
+
+valid_ranges = ranges[valid]
+valid_angles = angles[valid]
+
+# Convert polar measurements into Cartesian coordinates
+x_points = x_R + valid_ranges * np.cos(theta_R + valid_angles)
+y_points = y_R + valid_ranges * np.sin(theta_R + valid_angles)
+
+# Overlay LiDAR point cloud
+plt.scatter(
+    x_points,
+    y_points,
+    s=5,
+    c='red',
+    marker='.',
+    label='LiDAR Points'
+)
+plt.legend()
+plt.tight_layout()
 plt.show()
