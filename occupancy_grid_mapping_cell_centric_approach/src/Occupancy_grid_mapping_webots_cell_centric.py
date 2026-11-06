@@ -1,4 +1,4 @@
-"This file is meant to implement the binary occupancy grid mapping "
+"This file is meant to implement the binary occupancy grid mapping using cell - centric model"
 
 import pandas as pd
 import numpy as np
@@ -7,7 +7,7 @@ import ast
 
 
 # lidar data 
-df = pd.read_csv("/home/rathod/Webots_worlds/controllers/DriveMyRobot/point_cloud_data_occupancy_grid_mapping")
+df = pd.read_csv("D:\Projects\slam_env\experiments\occupancy_grid_mapping\Webots_worlds\controllers\point_cloud_data_occupancy_grid_mapping")
 data = df["lidar_measurements"]
 lidar_measurement = ast.literal_eval(data[1])
 
@@ -212,7 +212,7 @@ def binary_occupancy_grid_mapping(map, likelihood, lo, l_occ, l_free, x_t, z_t, 
 
         angle_min = np.radians(180)
 
-        angle_increment = -np.radians(1)
+        angle_increment = -0.5*np.radians(1)
     
         # Check if the map cell is in the perceptual range of the robot or specifically the sensor
         inside, k, r, phi = map.is_in_perceptual_range(i = i, x_t = x_t, ranges = z_t, angle_min = angle_min, angle_increment = angle_increment, z_max = z_max, beta = beta)
@@ -266,7 +266,7 @@ beta = np.radians(1)
 z_max = 15
 
 likelihood = binary_occupancy_grid_mapping(map = map, likelihood = map.likelihood, lo = lo, l_occ = l_occ, l_free = l_free, x_t = np.array([0.0, 0., 0.]), z_t = lidar_measurement, z_max = z_max, alpha = alpha, beta = beta)
-
+print("Exe Complete")
 # print(f"LIKE {"\n"}{likelihood[0, 0:10]}{"\n"}{likelihood[1, 0:10]}{"\n"}{likelihood[2, 0:10]}{"\n"}{likelihood[3, 0:10]}{"\n"}{likelihood[4, 0:10]}")
 
 # Convert log odds into occupancy probabilities
@@ -305,7 +305,7 @@ x_R, y_R, theta_R = 0.0, 0.0, 0.0
 
 # LiDAR scan configuration
 angle_min = np.radians(180)
-angle_increment = -np.radians(1)
+angle_increment = -0.5*np.radians(1)
 
 # Convert ranges into a NumPy array
 ranges = np.asarray(lidar_measurement, dtype=float)
